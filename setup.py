@@ -1,6 +1,8 @@
-
 from setuptools import setup
 
+tests_require = (
+    'mock>=1.0.1',
+)
 
 setup(
     author="@LoisaidaSam",
@@ -12,6 +14,7 @@ setup(
     name="pyslack-real",
     packages=["pyslack"],
     test_suite="tests",
+    tests_require=tests_require,
     url="https://github.com/loisaidasam/pyslack",
-    version="0.6.0",
+    version="0.6.1",
 )
