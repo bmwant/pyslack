@@ -17,10 +17,23 @@ class ClientTest(unittest.TestCase):
         client = pyslack.SlackClient(self.token)
 
         reply = {"ok": True}
-        r_post.return_value.json = Mock(return_value = reply)
+        r_post.return_value.json = Mock(return_value=reply)
 
         result = client.chat_post_message('#channel', 'message')
         self.assertEqual(reply, result)
+
+    @patch('requests.post')
+    def test_user_post_message(self, r_post):
+        client = pyslack.SlackClient(self.token)
+        client.chat_post_message = Mock()
+
+        reply = {
+            'ok': True,
+            'channel': {'id': 'C1234567890'},
+        }
+        r_post.return_value.json = Mock(return_value=reply)
+        client.user_post_message('U1234567890', 'message')
+        client.chat_post_message.assert_called_once_with('C1234567890', 'message')
 
     @patch('requests.post')
     def test_error_response(self, r_post):
