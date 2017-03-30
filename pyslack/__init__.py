@@ -16,7 +16,7 @@ class SlackClient(object):
         self.verify = verify
         self.blocked_until = None
         self.channel_name_id_map = {}
-        self.user_name_id_map = {}
+        self.username_id_map = {}
 
     def _channel_is_name(self, channel):
         return channel.startswith('#')
@@ -82,11 +82,11 @@ class SlackClient(object):
     def username_to_id(self, username, force_lookup=False):
         """Helper method for getting user's id from its name
         """
-        if force_lookup or not self.user_name_id_map:
+        if force_lookup or not self.username_id_map:
             users = self.users_list()['members']
-            self.user_name_id_map = {user['name']: user['id'] for user in users}
+            self.username_id_map = {user['name']: user['id'] for user in users}
         user = username.startswith('@') and username[1:] or username
-        return self.user_name_id_map.get(user)
+        return self.username_id_map.get(user)
 
     def chat_post_message(self, channel, text, **params):
         """chat.postMessage
@@ -126,9 +126,14 @@ class SlackClient(object):
         return self._make_request(method, params)
 
     def user_post_message(self, user, text, **params):
+        """im.open
+
+        Open a chat with a user and sends a message to him.
+
+        https://api.slack.com/methods/im.open
+        """
         method = 'im.open'
         if self._user_is_nickname(user):
-            # chat.update only takes channel ids (not channel names)
             user = self.username_to_id(user)
         params.update({
             'user': user,
