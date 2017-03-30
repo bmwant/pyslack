@@ -16,9 +16,13 @@ class SlackClient(object):
         self.verify = verify
         self.blocked_until = None
         self.channel_name_id_map = {}
+        self.user_name_id_map = {}
 
     def _channel_is_name(self, channel):
         return channel.startswith('#')
+
+    def _user_is_nickname(self, username):
+        return username.startswith('@')
 
     def _make_request(self, method, params):
         """Make request to API endpoint
@@ -62,14 +66,27 @@ class SlackClient(object):
         params.update({'exclude_archived': exclude_archived and 1 or 0})
         return self._make_request(method, params)
 
+    def users_list(self, **params):
+        method = 'users.list'
+        return self._make_request(method, params)
+
     def channel_name_to_id(self, channel_name, force_lookup=False):
-        """Helper name for getting a channel's id from its name
+        """Helper method for getting a channel's id from its name
         """
         if force_lookup or not self.channel_name_id_map:
             channels = self.channels_list()['channels']
             self.channel_name_id_map = {channel['name']: channel['id'] for channel in channels}
         channel = channel_name.startswith('#') and channel_name[1:] or channel_name
         return self.channel_name_id_map.get(channel)
+
+    def username_to_id(self, username, force_lookup=False):
+        """Helper method for getting user's id from its name
+        """
+        if force_lookup or not self.user_name_id_map:
+            users = self.users_list()['members']
+            self.user_name_id_map = {user['name']: user['id'] for user in users}
+        user = username.startswith('@') and username[1:] or username
+        return self.user_name_id_map.get(user)
 
     def chat_post_message(self, channel, text, **params):
         """chat.postMessage
@@ -107,6 +124,19 @@ class SlackClient(object):
             'ts': timestamp,
         })
         return self._make_request(method, params)
+
+    def user_post_message(self, user, text, **params):
+        method = 'im.open'
+        if self._user_is_nickname(user):
+            # chat.update only takes channel ids (not channel names)
+            user = self.username_to_id(user)
+        params.update({
+            'user': user,
+            'return_im': True,
+        })
+        response = self._make_request(method, params)
+        channel_id = response['channel']['id']
+        return self.chat_post_message(channel_id, text)
 
 
 class SlackHandler(logging.Handler):
